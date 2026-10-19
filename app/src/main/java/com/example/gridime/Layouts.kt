@@ -29,7 +29,7 @@ data class Key(
  */
 object Layouts {
     const val UNITS = 10f
-    const val DOTCOM_UNITS = 2f       // width of the ".com" key
+    const val DOTCOM_UNITS = 1.5f     // width of the ".com" key (clearly narrower than the space bar)
     const val MAX_CLIP_CARDS = 6      // 3 rows of 2; the 4th row holds the button guide
 
     private fun chars(s: String) = s.map { Key(KeyType.CHAR, it.toString()) }
@@ -58,7 +58,7 @@ object Layouts {
         }
     }
 
-    /** The space bar gives up [DOTCOM_UNITS] of its width to a ".com" key on its right. */
+    /** The space bar gives up [DOTCOM_UNITS] of its width to a ".com" key between "." and Enter. */
     fun letterRows(layout: KeyLayout): List<List<Key>> = when (layout) {
         KeyLayout.GRID -> listOf(
             chars("qwertyuiop"),
@@ -101,8 +101,8 @@ object Layouts {
         Key(KeyType.LAYER, layerLabel, side, hint = ControllerButton.L2),
         Key(KeyType.CHAR, ","),
         Key(KeyType.SPACE, "", space - DOTCOM_UNITS, hint = ControllerButton.Y),
-        Key(KeyType.CHAR, ".com", DOTCOM_UNITS, hint = ControllerButton.START),
         Key(KeyType.CHAR, "."),
+        Key(KeyType.CHAR, ".com", DOTCOM_UNITS, hint = ControllerButton.START),
         Key(KeyType.ENTER, "", side, hint = ControllerButton.R2)
     )
 }
