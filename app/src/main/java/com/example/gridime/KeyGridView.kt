@@ -721,14 +721,14 @@ class KeyGridView(context: Context) : View(context) {
 
     /** Shown over the tool strip while LT is held. */
     private fun comboChips(): List<List<HintPart>> = listOfNotNull(
-        listOf(HintPart.Badge(ControllerButton.R3), HintPart.Badge(ControllerButton.R1), HintPart.Text("Jump word")),
+        listOf(HintPart.Badge(ControllerButton.L3), HintPart.Badge(ControllerButton.R3), HintPart.Badge(ControllerButton.R1), HintPart.Text("Jump word")),
         listOf(HintPart.Badge(ControllerButton.A), HintPart.Text("Capital")),
         if (settings.undoCombo) listOf(HintPart.Badge(ControllerButton.X), HintPart.Text("Undo")) else null
     )
 
     /** Shown on the space bar in select mode, most useful first. */
     private fun selectChips(): List<List<HintPart>> = listOfNotNull(
-        listOf(HintPart.Badge(ControllerButton.R3), HintPart.Badge(ControllerButton.R1), HintPart.Text("Extend")),
+        listOf(HintPart.Badge(ControllerButton.L3), HintPart.Badge(ControllerButton.R3), HintPart.Badge(ControllerButton.R1), HintPart.Text("Extend")),
         if (!settings.selectAllButton) {
             listOf(HintPart.Badge(ControllerButton.SELECT, presses = 2), HintPart.Text("All"))
         } else {

@@ -35,7 +35,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var selStart = 0
     private var selEnd = 0
 
-    // Select mode: R3 / R1 grow or shrink the selection
+    // Select mode: L3 shrinks / R3 and R1 grow the selection
     private var selecting = false
     private var anchor = 0
     private var movingEnd = 0
@@ -54,7 +54,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var hatDy = 0
 
     // L2 (left trigger) tap = shift, L2 hold = modifier. L1 (left bumper) = letters/symbols.
-    // R3 (right stick click) = cursor left, R1 = cursor right.
+    // L3 (left stick click) = cursor left, R3 (right stick click) and R1 = cursor right.
     // R2 once = confirm (Enter / action), R2 twice quickly = send.
     private var leftTriggerDown = false
     private var rightTriggerDown = false
@@ -372,7 +372,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** L2 + R3 / R1: jump (or select) a whole word. */
+    /** L2 + L3 / R3 / R1: jump (or select) a whole word. */
     private fun jumpWord(dir: Int) {
         val ic = currentInputConnection ?: return
         val (text, offset) = TextOps.textAround(ic, selStart, selEnd)
@@ -469,10 +469,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_BUTTON_R1 -> if (first) startCursor(1)
             KeyEvent.KEYCODE_BUTTON_START -> if (first) grid.typeDotCom()
             KeyEvent.KEYCODE_BUTTON_L2 -> if (first) shiftDown()
-            KeyEvent.KEYCODE_BUTTON_THUMBR -> if (first) startCursor(-1)
+            KeyEvent.KEYCODE_BUTTON_THUMBR -> if (first) startCursor(1)
             KeyEvent.KEYCODE_BUTTON_R2 -> if (first) onConfirm()
             KeyEvent.KEYCODE_BUTTON_SELECT -> if (first) onSelectButton()
-            KeyEvent.KEYCODE_BUTTON_THUMBL -> if (first) cycleSize()
+            KeyEvent.KEYCODE_BUTTON_THUMBL -> if (first) startCursor(-1)
 
             // B closes select mode or the clipboard first; otherwise it's Android's Back
             KeyEvent.KEYCODE_BUTTON_B -> {
@@ -501,7 +501,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_BUTTON_X -> deleteRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_L2 -> shiftUp()
-            KeyEvent.KEYCODE_BUTTON_THUMBR -> cursorRepeater.stop()
+            KeyEvent.KEYCODE_BUTTON_THUMBR, KeyEvent.KEYCODE_BUTTON_THUMBL -> cursorRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_B -> {
                 val consumed = bConsumed
                 bConsumed = false
@@ -578,14 +578,6 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         shiftLastRelease = SystemClock.uptimeMillis()
         gridView?.setHeldShift(false)
         if (!shiftUsedAsModifier) gridView?.cycleShift()
-    }
-
-    /** L3: normal -> large -> largest -> normal. */
-    private fun cycleSize() {
-        settings = KeyboardSettings.load(this).let { it.copy(sizeLevel = (it.sizeLevel + 1) % 3) }
-        settings.save(this)
-        gridView?.applySettings(settings)
-        feedback.on()
     }
 
     // =====================================================================
@@ -679,7 +671,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         const val DELETE_WORDS_AFTER = 20
         const val DELETE_WORD_MS = 160L
 
-        // Hold R3 / R1
+        // Hold L3 / R3 / R1
         const val CURSOR_DELAY_MS = 400L
         const val CURSOR_START_MS = 110L
         const val CURSOR_FASTEST_MS = 45L

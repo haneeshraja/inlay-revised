@@ -376,7 +376,7 @@ class SettingsActivity : Activity() {
                 KeyLayout.values().map { it.label }, settings.layout.ordinal) {
                 update(settings.copy(layout = KeyLayout.values()[it]))
             },
-            ChoiceRow(this, "Keyboard size", "Also on the keyboard: press {L3}",
+            ChoiceRow(this, "Keyboard size", null,
                 listOf("Normal", "Large", "Largest"), settings.sizeLevel) {
                 update(settings.copy(sizeLevel = it))
             }
@@ -488,8 +488,8 @@ class SettingsActivity : Activity() {
 
     private fun guidePage(): List<Section> {
         val editing = mutableListOf(
-            GuideRow(this, "Move the text cursor", "{R3} {R1}"),
-            GuideRow(this, "Jump a whole word", "{L2} + {R3} {R1}"),
+            GuideRow(this, "Move the text cursor", "{L3} {R3} {R1}"),
+            GuideRow(this, "Jump a whole word", "{L2} + {L3} {R3} {R1}"),
             GuideRow(this, "Select text", "{SELECT}"),
             GuideRow(this, "Select everything", "{SELECTx2}")
         )
@@ -508,8 +508,7 @@ class SettingsActivity : Activity() {
             )),
             Section("Editing", editing),
             Section("Keyboard", listOf(
-                GuideRow(this, "Close the keyboard", "{B}"),
-                GuideRow(this, "Change keyboard size", "{L3}")
+                GuideRow(this, "Close the keyboard", "{B}")
             ))
         )
     }
