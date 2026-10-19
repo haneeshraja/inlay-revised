@@ -53,12 +53,11 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var hatDx = 0
     private var hatDy = 0
 
-    // L1 (left bumper) tap = shift, L1 hold = modifier. L2 = letters/symbols.
+    // L2 (left trigger) tap = shift, L2 hold = modifier. L1 (left bumper) = letters/symbols.
     // R3 (right stick click) = cursor left, R1 = cursor right.
     // R2 once = confirm (Enter / action), R2 twice quickly = send.
     private var leftTriggerDown = false
     private var rightTriggerDown = false
-    private var lastLayerTime = 0L
     private var lastConfirmTime = 0L
     private var lastConfirmPress = 0L          // last real confirm, for the double press
     private var lastConfirmWasNewline = false
@@ -373,7 +372,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** L1 + R3 / R1: jump (or select) a whole word. */
+    /** L2 + R3 / R1: jump (or select) a whole word. */
     private fun jumpWord(dir: Int) {
         val ic = currentInputConnection ?: return
         val (text, offset) = TextOps.textAround(ic, selStart, selEnd)
@@ -466,10 +465,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
                 feedback.space()
                 onText(" ")
             }
-            KeyEvent.KEYCODE_BUTTON_L1 -> if (first) shiftDown()
+            KeyEvent.KEYCODE_BUTTON_L1 -> if (first) grid.toggleLayer()
             KeyEvent.KEYCODE_BUTTON_R1 -> if (first) startCursor(1)
             KeyEvent.KEYCODE_BUTTON_START -> if (first) grid.typeDotCom()
-            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) onLayerButton()
+            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) shiftDown()
             KeyEvent.KEYCODE_BUTTON_THUMBR -> if (first) startCursor(-1)
             KeyEvent.KEYCODE_BUTTON_R2 -> if (first) onConfirm()
             KeyEvent.KEYCODE_BUTTON_SELECT -> if (first) onSelectButton()
@@ -501,7 +500,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> stopNav()
             KeyEvent.KEYCODE_BUTTON_X -> deleteRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
-            KeyEvent.KEYCODE_BUTTON_L1 -> shiftUp()
+            KeyEvent.KEYCODE_BUTTON_L2 -> shiftUp()
             KeyEvent.KEYCODE_BUTTON_THUMBR -> cursorRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_B -> {
                 val consumed = bConsumed
@@ -526,14 +525,6 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             }
             else -> startDelete()
         }
-    }
-
-    /** L2: switch between letters and symbols. */
-    private fun onLayerButton() {
-        val now = SystemClock.uptimeMillis()
-        if (now - lastLayerTime < TRIGGER_DEDUPE_MS) return
-        lastLayerTime = now
-        gridView?.toggleLayer()
     }
 
     /**
@@ -571,7 +562,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         refreshAutoShift()
     }
 
-    /** L1 down: show capitals, then wait to see whether it's a tap or a hold. */
+    /** L2 down: show capitals, then wait to see whether it's a tap or a hold. */
     private fun shiftDown() {
         if (shiftHeld) return
         if (SystemClock.uptimeMillis() - shiftLastRelease < TRIGGER_DEDUPE_MS) return
@@ -580,7 +571,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         gridView?.setHeldShift(true)
     }
 
-    /** L1 up: if nothing else was pressed with it, it was a shift tap. */
+    /** L2 up: if nothing else was pressed with it, it was a shift tap. */
     private fun shiftUp() {
         if (!shiftHeld) return
         shiftHeld = false
@@ -617,9 +608,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         val rt = max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS))
         if (!leftTriggerDown && lt > TRIGGER_PRESS) {
             leftTriggerDown = true
-            onLayerButton()
+            shiftDown()
         } else if (leftTriggerDown && lt < TRIGGER_RELEASE) {
             leftTriggerDown = false
+            shiftUp()
         }
         if (!rightTriggerDown && rt > TRIGGER_PRESS) {
             rightTriggerDown = true
@@ -699,7 +691,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
 
         val HANDLED_KEYS = setOf(
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_Y,
-            KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2,
+            KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R2,
             KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_THUMBL,
             KeyEvent.KEYCODE_BUTTON_START
         )

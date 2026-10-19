@@ -16,7 +16,7 @@ Free, open source, no ads, no tracking, no internet permission.
 
 ![Typing a sentence with the D-pad and buttons](docs/images/demo.gif)
 
-*A real screen recording from my AYN Odin 2 Portal: typing with the D-pad and A, Y for space, LB for a capital letter and LT for numbers and symbols.*
+*A real screen recording from my AYN Odin 2 Portal: typing with the D-pad and A, Y for space, LT for a capital letter and LB for numbers and symbols.*
 
 ## Who made this
 
@@ -33,9 +33,9 @@ All of these are real screenshots from my Odin 2 Portal.
 | | |
 |---|---|
 | ![Letters](docs/images/letters.png) | ![Symbols](docs/images/symbols.png) |
-| **Letters.** The highlight follows the D-pad. Small badges show which button does what. | **Symbols.** Press LT to flip between letters and symbols. |
-| ![Holding LB](docs/images/hold-rt.png) | ![Select mode](docs/images/select-mode.png) |
-| **Hold LB.** Hints appear for jumping words, one capital letter and undo. | **Select mode.** Press Select, then RS / RB to extend. Press it twice to select everything. |
+| **Letters.** The highlight follows the D-pad. Small badges show which button does what. | **Symbols.** Press LB to flip between letters and symbols. |
+| ![Holding LT](docs/images/hold-rt.png) | ![Select mode](docs/images/select-mode.png) |
+| **Hold LT.** Hints appear for jumping words, one capital letter and undo. | **Select mode.** Press Select, then RS / RB to extend. Press it twice to select everything. |
 | ![Clipboard history](docs/images/clipboard.png) | ![Settings, Look](docs/images/settings-look.png) |
 | **Clipboard history.** Your recent copies, one button away. | **Settings, Look.** 16 highlight colours plus any custom colour. |
 | ![Settings, Sound and haptics](docs/images/settings-sound.png) | ![Settings with keyboard preview](docs/images/settings-preview.png) |
@@ -48,8 +48,8 @@ All of these are real screenshots from my Odin 2 Portal.
 - **Made for controllers.** D-pad or left stick moves the highlight, with smart repeat when you hold a direction.
 - **Every button does something useful.**
   - A types, X deletes (hold it and it speeds up, then deletes whole words), Y is space.
-  - RS (right stick click) / RB move the cursor. Hold LB with them to jump whole words.
-  - LB taps shift; tap twice for caps lock. LT switches to symbols. RT once confirms (Enter); RT twice quickly sends the message (can be turned off in Settings).
+  - RS (right stick click) / RB move the cursor. Hold LT with them to jump whole words.
+  - LT taps shift; tap twice for caps lock. LB switches to symbols. RT once confirms (Enter); RT twice quickly sends the message (can be turned off in Settings).
   - Start types .com. There is a .com key between . and Enter too.
   - Select starts selecting text; press it twice to select everything.
 - **Clipboard history.** Your last few copies, one button away. Passwords marked as sensitive are never kept.

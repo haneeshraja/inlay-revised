@@ -141,7 +141,7 @@ class KeyGridView(context: Context) : View(context) {
     private var layer = Layer.LETTERS
     private var layerBeforeClips = Layer.LETTERS
     private var shiftState = ShiftState.OFF
-    private var heldShift = false          // LB is held right now
+    private var heldShift = false          // LT is held right now
     private var selRow = 2                 // row 0 is the tool strip
     private var selCol = 4
     private var selecting = false
@@ -200,7 +200,7 @@ class KeyGridView(context: Context) : View(context) {
     private var focusAnim: ValueAnimator? = null
     private var pressScale = 1f
     private var pulseAnim: ValueAnimator? = null
-    private var comboFade = 0f             // 0 = tool strip, 1 = LB combo chips
+    private var comboFade = 0f             // 0 = tool strip, 1 = LT combo chips
     private var comboAnim: ValueAnimator? = null
 
     private fun lerp(a: Float, b: Float, t: Float) = a + (b - a) * t
@@ -326,7 +326,7 @@ class KeyGridView(context: Context) : View(context) {
         press(allRows()[selRow][selCol])
     }
 
-    /** LB tap: off -> next letter only -> caps lock -> off. */
+    /** LT tap: off -> next letter only -> caps lock -> off. */
     fun cycleShift() {
         if (layer != Layer.LETTERS) return
         shiftState = when (shiftState) {
@@ -337,7 +337,7 @@ class KeyGridView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** LB held: capitals on the keys, and the LB combos fade in over the tool strip. */
+    /** LT held: capitals on the keys, and the LT combos fade in over the tool strip. */
     fun setHeldShift(on: Boolean) {
         if (heldShift == on) return
         heldShift = on
@@ -539,7 +539,7 @@ class KeyGridView(context: Context) : View(context) {
             focusReady = true
         }
 
-        // 1. Key backgrounds (the tool strip fades out while the LB chips show)
+        // 1. Key backgrounds (the tool strip fades out while the LT chips show)
         rows.forEachIndexed { r, row ->
             if (r == 0 && comboFade >= 1f) return@forEachIndexed
             row.forEachIndexed { c, key ->
@@ -574,7 +574,7 @@ class KeyGridView(context: Context) : View(context) {
             if (layerSaved >= 0) canvas.restoreToCount(layerSaved)
         }
 
-        // 4. LB combo chips, faded in over the tool strip
+        // 4. LT combo chips, faded in over the tool strip
         if (comboFade > 0f) {
             val saved = canvas.saveLayerAlpha(stripRect(), (comboFade * 255).roundToInt())
             drawChips(canvas, stripRect(), colBackground, comboChips())
@@ -719,7 +719,7 @@ class KeyGridView(context: Context) : View(context) {
 
     // ---- Hint chips ---------------------------------------------------------
 
-    /** Shown over the tool strip while LB is held. */
+    /** Shown over the tool strip while LT is held. */
     private fun comboChips(): List<List<HintPart>> = listOfNotNull(
         listOf(HintPart.Badge(ControllerButton.R3), HintPart.Badge(ControllerButton.R1), HintPart.Text("Jump word")),
         listOf(HintPart.Badge(ControllerButton.A), HintPart.Text("Capital")),
@@ -735,7 +735,7 @@ class KeyGridView(context: Context) : View(context) {
             null
         },
         listOf(HintPart.Badge(ControllerButton.B), HintPart.Text("Done")),
-        listOf(HintPart.Badge(ControllerButton.L1), HintPart.Text("Word"))
+        listOf(HintPart.Badge(ControllerButton.L2), HintPart.Text("Word"))
     )
 
     private fun drawChips(canvas: Canvas, area: RectF, background: Int, chips: List<List<HintPart>>) {
@@ -814,7 +814,7 @@ class KeyGridView(context: Context) : View(context) {
     // ICONS: one family. Same stroke, round caps and joins, fit a 2.4 s box.
     // =====================================================================
 
-    /** Shift: outline = off, filled on tinted key = next letter / LB held, bar on solid key = caps lock. */
+    /** Shift: outline = off, filled on tinted key = next letter / LT held, bar on solid key = caps lock. */
     private fun drawShift(canvas: Canvas, cx: Float, cy: Float, s: Float, focused: Boolean, bg: Int, ink: Int) {
         val look = shiftLook
         iconPaint.color = if (!focused && look == ShiftState.ONCE) accentOn(bg) else ink

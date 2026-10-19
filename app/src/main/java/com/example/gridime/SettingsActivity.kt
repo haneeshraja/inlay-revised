@@ -396,7 +396,7 @@ class SettingsActivity : Activity() {
                 settings.showHints) {
                 update(settings.copy(showHints = it))
             },
-            ToggleRow(this, "Combo tips", "Shows what you can do while holding {L1}",
+            ToggleRow(this, "Combo tips", "Shows what you can do while holding {L2}",
                 settings.comboHints) {
                 update(settings.copy(comboHints = it))
             }
@@ -410,7 +410,7 @@ class SettingsActivity : Activity() {
                 settings.doubleSpacePeriod) {
                 update(settings.copy(doubleSpacePeriod = it))
             },
-            ToggleRow(this, "Undo shortcut", "Hold {L1} and press {X}",
+            ToggleRow(this, "Undo shortcut", "Hold {L2} and press {X}",
                 settings.undoCombo) {
                 update(settings.copy(undoCombo = it))
             },
@@ -489,19 +489,19 @@ class SettingsActivity : Activity() {
     private fun guidePage(): List<Section> {
         val editing = mutableListOf(
             GuideRow(this, "Move the text cursor", "{R3} {R1}"),
-            GuideRow(this, "Jump a whole word", "{L1} + {R3} {R1}"),
+            GuideRow(this, "Jump a whole word", "{L2} + {R3} {R1}"),
             GuideRow(this, "Select text", "{SELECT}"),
             GuideRow(this, "Select everything", "{SELECTx2}")
         )
-        if (settings.undoCombo) editing += GuideRow(this, "Undo", "{L1} + {X}")
+        if (settings.undoCombo) editing += GuideRow(this, "Undo", "{L2} + {X}")
         return listOf(
             Section("Typing", listOf(
                 GuideRow(this, "Type the highlighted key", "{A}"),
                 GuideRow(this, "Delete · hold to speed up", "{X}"),
                 GuideRow(this, "Space", "{Y}"),
-                GuideRow(this, "Shift · tap twice for caps lock", "{L1}"),
-                GuideRow(this, "One capital letter", "{L1} + {A}"),
-                GuideRow(this, "Letters and symbols", "{L2}"),
+                GuideRow(this, "Shift · tap twice for caps lock", "{L2}"),
+                GuideRow(this, "One capital letter", "{L2} + {A}"),
+                GuideRow(this, "Letters and symbols", "{L1}"),
                 GuideRow(this, "Enter · Search · Go", "{R2}"),
                 GuideRow(this, "Send the message", "{R2x2}"),
                 GuideRow(this, "Type .com", "{START}")
