@@ -17,7 +17,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
-/** Turns "Hold {R2} and press {X}" into words and button badges. */
+/** Turns "Hold {L2} and press {X}" into words and button badges. */
 object HintText {
     /** {X} = a button, {SELECTx2} = press it twice quickly. */
     private val token = Regex("""\{([A-Z0-9]+?)(?:x(\d))?\}""")

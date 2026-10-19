@@ -116,7 +116,7 @@ data class KeyboardSettings(
     // Controls
     val stickSpeed: Int = 2,            // 0 slow to 4 fast
     val showHints: Boolean = true,      // badges on keys
-    val comboHints: Boolean = true,     // chips while holding RT
+    val comboHints: Boolean = true,     // chips while holding LT
     val selectAllButton: Boolean = false,
     val doubleSpacePeriod: Boolean = true,
     val undoCombo: Boolean = true,

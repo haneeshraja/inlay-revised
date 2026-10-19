@@ -53,13 +53,14 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var hatDx = 0
     private var hatDy = 0
 
-    // Triggers. L2 = letters/symbols. R2 tap = shift, R2 hold = modifier.
+    // Triggers. L2 tap = shift, L2 hold = modifier. R2 = confirm / send. Start = letters/symbols.
     private var leftTriggerDown = false
     private var rightTriggerDown = false
-    private var lastL2Time = 0L
-    private var r2Held = false
-    private var r2UsedAsModifier = false
-    private var r2LastRelease = 0L
+    private var lastLayerTime = 0L
+    private var lastConfirmTime = 0L
+    private var shiftHeld = false
+    private var shiftUsedAsModifier = false
+    private var shiftLastRelease = 0L
 
     private var lastSpaceTime = 0L
     private var bConsumed = false
@@ -158,7 +159,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         stick.reset()
         hatDx = 0
         hatDy = 0
-        r2Held = false
+        shiftHeld = false
         rightTriggerDown = false
         leftTriggerDown = false
         gridView?.setHeldShift(false)
@@ -361,7 +362,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** R2 + L1 / R1: jump (or select) a whole word. */
+    /** L2 + L1 / R1: jump (or select) a whole word. */
     private fun jumpWord(dir: Int) {
         val ic = currentInputConnection ?: return
         val (text, offset) = TextOps.textAround(ic, selStart, selEnd)
@@ -385,8 +386,8 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             intervalFor = { n -> max(CURSOR_FASTEST_MS, CURSOR_START_MS - n * 8L) }
         ) {
             feedback.move()
-            if (r2Held) {
-                r2UsedAsModifier = true
+            if (shiftHeld) {
+                shiftUsedAsModifier = true
                 jumpWord(dir)
             } else {
                 moveCursor(dir)
@@ -446,7 +447,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_DPAD_RIGHT -> if (first) startNav(1, 0, fromStick = false)
 
             KeyEvent.KEYCODE_BUTTON_A -> if (first) {
-                if (r2Held) r2UsedAsModifier = true
+                if (shiftHeld) shiftUsedAsModifier = true
                 grid.pressSelected()
             }
             KeyEvent.KEYCODE_BUTTON_X -> if (first) onXButton(grid)
@@ -456,14 +457,11 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             }
             KeyEvent.KEYCODE_BUTTON_L1 -> if (first) startCursor(-1)
             KeyEvent.KEYCODE_BUTTON_R1 -> if (first) startCursor(1)
-            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) onL2()
-            KeyEvent.KEYCODE_BUTTON_R2 -> if (first) r2Down()
+            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) shiftDown()
+            KeyEvent.KEYCODE_BUTTON_R2 -> if (first) onConfirm()
             KeyEvent.KEYCODE_BUTTON_SELECT -> if (first) onSelectButton()
             KeyEvent.KEYCODE_BUTTON_THUMBL -> if (first) cycleSize()
-            KeyEvent.KEYCODE_BUTTON_START -> if (first) {
-                feedback.confirm()
-                onEnter()
-            }
+            KeyEvent.KEYCODE_BUTTON_START -> if (first) onLayerButton()
 
             // B closes select mode or the clipboard first; otherwise it's Android's Back
             KeyEvent.KEYCODE_BUTTON_B -> {
@@ -491,7 +489,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> stopNav()
             KeyEvent.KEYCODE_BUTTON_X -> deleteRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
-            KeyEvent.KEYCODE_BUTTON_R2 -> r2Up()
+            KeyEvent.KEYCODE_BUTTON_L2 -> shiftUp()
             KeyEvent.KEYCODE_BUTTON_B -> {
                 val consumed = bConsumed
                 bConsumed = false
@@ -509,37 +507,47 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
                 grid.setClips(history.all)
                 feedback.delete()
             }
-            r2Held && settings.undoCombo -> {
-                r2UsedAsModifier = true
+            shiftHeld && settings.undoCombo -> {
+                shiftUsedAsModifier = true
                 undo()
             }
             else -> startDelete()
         }
     }
 
-    private fun onL2() {
+    /** Start: switch between letters and symbols. */
+    private fun onLayerButton() {
         val now = SystemClock.uptimeMillis()
-        if (now - lastL2Time < TRIGGER_DEDUPE_MS) return
-        lastL2Time = now
+        if (now - lastLayerTime < TRIGGER_DEDUPE_MS) return
+        lastLayerTime = now
         gridView?.toggleLayer()
     }
 
-    /** R2 down: show capitals, then wait to see whether it's a tap or a hold. */
-    private fun r2Down() {
-        if (r2Held) return
-        if (SystemClock.uptimeMillis() - r2LastRelease < TRIGGER_DEDUPE_MS) return
-        r2Held = true
-        r2UsedAsModifier = false
+    /** R2: confirm / send (Enter, Search, Go). */
+    private fun onConfirm() {
+        val now = SystemClock.uptimeMillis()
+        if (now - lastConfirmTime < TRIGGER_DEDUPE_MS) return
+        lastConfirmTime = now
+        feedback.confirm()
+        onEnter()
+    }
+
+    /** L2 down: show capitals, then wait to see whether it's a tap or a hold. */
+    private fun shiftDown() {
+        if (shiftHeld) return
+        if (SystemClock.uptimeMillis() - shiftLastRelease < TRIGGER_DEDUPE_MS) return
+        shiftHeld = true
+        shiftUsedAsModifier = false
         gridView?.setHeldShift(true)
     }
 
-    /** R2 up: if nothing else was pressed with it, it was a shift tap. */
-    private fun r2Up() {
-        if (!r2Held) return
-        r2Held = false
-        r2LastRelease = SystemClock.uptimeMillis()
+    /** L2 up: if nothing else was pressed with it, it was a shift tap. */
+    private fun shiftUp() {
+        if (!shiftHeld) return
+        shiftHeld = false
+        shiftLastRelease = SystemClock.uptimeMillis()
         gridView?.setHeldShift(false)
-        if (!r2UsedAsModifier) gridView?.cycleShift()
+        if (!shiftUsedAsModifier) gridView?.cycleShift()
     }
 
     /** L3: normal -> large -> largest -> normal. */
@@ -570,16 +578,16 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         val rt = max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS))
         if (!leftTriggerDown && lt > TRIGGER_PRESS) {
             leftTriggerDown = true
-            onL2()
+            shiftDown()
         } else if (leftTriggerDown && lt < TRIGGER_RELEASE) {
             leftTriggerDown = false
+            shiftUp()
         }
         if (!rightTriggerDown && rt > TRIGGER_PRESS) {
             rightTriggerDown = true
-            r2Down()
+            onConfirm()
         } else if (rightTriggerDown && rt < TRIGGER_RELEASE) {
             rightTriggerDown = false
-            r2Up()
         }
     }
 
@@ -653,7 +661,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
 
         val HANDLED_KEYS = setOf(
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_Y,
-            KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_SELECT,
+            KeyEvent.KEYCODE_BUTTON_R2, KeyEvent.KEYCODE_BUTTON_SELECT,
             KeyEvent.KEYCODE_BUTTON_THUMBL, KeyEvent.KEYCODE_BUTTON_START
         )
     }

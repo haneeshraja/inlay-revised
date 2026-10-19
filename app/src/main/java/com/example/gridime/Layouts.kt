@@ -92,14 +92,14 @@ object Layouts {
         }
     }
 
-    private fun shift(weight: Float) = Key(KeyType.SHIFT, weight = weight, hint = ControllerButton.R2)
+    private fun shift(weight: Float) = Key(KeyType.SHIFT, weight = weight, hint = ControllerButton.L2)
     private fun delete(weight: Float) = Key(KeyType.DELETE, weight = weight, hint = ControllerButton.X)
 
     private fun bottomRow(layerLabel: String, space: Float, side: Float) = listOf(
-        Key(KeyType.LAYER, layerLabel, side, hint = ControllerButton.L2),
+        Key(KeyType.LAYER, layerLabel, side, hint = ControllerButton.START),
         Key(KeyType.CHAR, ","),
         Key(KeyType.SPACE, "", space, hint = ControllerButton.Y),
         Key(KeyType.CHAR, "."),
-        Key(KeyType.ENTER, "", side, hint = ControllerButton.START)
+        Key(KeyType.ENTER, "", side, hint = ControllerButton.R2)
     )
 }
