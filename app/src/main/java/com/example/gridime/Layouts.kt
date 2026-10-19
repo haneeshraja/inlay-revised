@@ -29,6 +29,7 @@ data class Key(
  */
 object Layouts {
     const val UNITS = 10f
+    const val URL_KEY_UNITS = 2f      // width of the ".com" key in browser address bars
     const val MAX_CLIP_CARDS = 6      // 3 rows of 2; the 4th row holds the button guide
 
     private fun chars(s: String) = s.map { Key(KeyType.CHAR, it.toString()) }
@@ -57,29 +58,30 @@ object Layouts {
         }
     }
 
-    fun letterRows(layout: KeyLayout): List<List<Key>> = when (layout) {
+    /** In a browser address bar the space bar gives up [URL_KEY_UNITS] of its width to a ".com" key. */
+    fun letterRows(layout: KeyLayout, urlMode: Boolean = false): List<List<Key>> = when (layout) {
         KeyLayout.GRID -> listOf(
             chars("qwertyuiop"),
             chars("asdfghjkl'"),
             listOf(shift(1f)) + chars("zxcvbnm") + delete(2f),
-            bottomRow("?123", space = 4f, side = 2f)
+            bottomRow("?123", space = 4f, side = 2f, urlMode = urlMode)
         )
         KeyLayout.CLASSIC -> listOf(
             chars("qwertyuiop"),
             chars("asdfghjkl"),
             listOf(shift(1.5f)) + chars("zxcvbnm") + delete(1.5f),
-            bottomRow("?123", space = 5f, side = 1.5f)
+            bottomRow("?123", space = 5f, side = 1.5f, urlMode = urlMode)
         )
     }
 
-    fun symbolRows(layout: KeyLayout): List<List<Key>> {
+    fun symbolRows(layout: KeyLayout, urlMode: Boolean = false): List<List<Key>> {
         val space = if (layout == KeyLayout.GRID) 4f else 5f
         val side = if (layout == KeyLayout.GRID) 2f else 1.5f
         return listOf(
             chars("1234567890"),
             chars("@#\$%&-+()/"),
             chars("*\"':;!?=") + delete(2f),
-            bottomRow("ABC", space, side)
+            bottomRow("ABC", space, side, urlMode)
         )
     }
 
@@ -95,10 +97,11 @@ object Layouts {
     private fun shift(weight: Float) = Key(KeyType.SHIFT, weight = weight, hint = ControllerButton.L1)
     private fun delete(weight: Float) = Key(KeyType.DELETE, weight = weight, hint = ControllerButton.X)
 
-    private fun bottomRow(layerLabel: String, space: Float, side: Float) = listOf(
+    private fun bottomRow(layerLabel: String, space: Float, side: Float, urlMode: Boolean = false) = listOf(
         Key(KeyType.LAYER, layerLabel, side, hint = ControllerButton.L2),
         Key(KeyType.CHAR, ","),
-        Key(KeyType.SPACE, "", space, hint = ControllerButton.Y),
+        Key(KeyType.SPACE, "", if (urlMode) space - URL_KEY_UNITS else space, hint = ControllerButton.Y)
+    ) + (if (urlMode) listOf(Key(KeyType.CHAR, ".com", URL_KEY_UNITS)) else emptyList()) + listOf(
         Key(KeyType.CHAR, "."),
         Key(KeyType.ENTER, "", side, hint = ControllerButton.R2)
     )

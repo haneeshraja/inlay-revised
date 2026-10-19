@@ -72,6 +72,18 @@ class KeyGridView(context: Context) : View(context) {
     private var toolRow = Layouts.toolRow(selectAllButton = false)
     private var letterRows = Layouts.letterRows(KeyLayout.GRID)
     private var symbolRows = Layouts.symbolRows(KeyLayout.GRID)
+    private var urlMode = false               // browser address bar: shorter space bar plus a ".com" key
+
+    /** Turns the address-bar layout on or off. Only rebuilds the rows when it actually changes. */
+    fun setUrlMode(on: Boolean) {
+        if (on == urlMode) return
+        urlMode = on
+        letterRows = Layouts.letterRows(settings.layout, urlMode)
+        symbolRows = Layouts.symbolRows(settings.layout, urlMode)
+        focusReady = false
+        clampFocus()
+        invalidate()
+    }
 
     fun applySettings(s: KeyboardSettings) {
         val layoutChanged = s.layout != settings.layout || s.selectAllButton != settings.selectAllButton
@@ -84,8 +96,8 @@ class KeyGridView(context: Context) : View(context) {
         colGlow = Contrast.withAlpha(s.accent, 0x59)
         badges.style = s.buttonStyle
         toolRow = Layouts.toolRow(s.selectAllButton)
-        letterRows = Layouts.letterRows(s.layout)
-        symbolRows = Layouts.symbolRows(s.layout)
+        letterRows = Layouts.letterRows(s.layout, urlMode)
+        symbolRows = Layouts.symbolRows(s.layout, urlMode)
         val level = s.sizeLevel.coerceIn(0, sizeScales.lastIndex)
         val sizeChanged = level != sizeLevel
         if (sizeChanged) {
@@ -188,7 +200,9 @@ class KeyGridView(context: Context) : View(context) {
 
     private val capitals get() = layer == Layer.LETTERS && (shiftState != ShiftState.OFF || heldShift)
 
-    private fun displayLabel(key: Key): String = if (capitals) key.label.uppercase() else key.label
+    // Only single letters turn into capitals; ".com" stays as it is
+    private fun displayLabel(key: Key): String =
+        if (capitals && key.label.length == 1) key.label.uppercase() else key.label
 
     // =====================================================================
     // ANIMATION

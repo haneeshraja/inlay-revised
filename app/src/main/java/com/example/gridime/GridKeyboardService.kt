@@ -7,6 +7,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.text.InputType
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -138,11 +139,19 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             setClips(history.all)
             closeClips(focusOnHistoryButton = false)
         }
+        gridView?.setUrlMode(settings.urlKeys && isUrlField(info))
         selStart = info?.initialSelStart?.coerceAtLeast(0) ?: 0
         selEnd = info?.initialSelEnd?.coerceAtLeast(0) ?: 0
         exitSelectMode(collapse = false)
         refreshAutoShift()
         updateClipPreview()
+    }
+
+    /** Browser address bars report themselves as a web address field. */
+    private fun isUrlField(info: EditorInfo?): Boolean {
+        val type = info?.inputType ?: return false
+        return (type and InputType.TYPE_MASK_CLASS) == InputType.TYPE_CLASS_TEXT &&
+            (type and InputType.TYPE_MASK_VARIATION) == InputType.TYPE_TEXT_VARIATION_URI
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {

@@ -417,6 +417,10 @@ class SettingsActivity : Activity() {
             ToggleRow(this, "Double press to send", "Press {R2} once to confirm, twice quickly to send the message",
                 settings.doubleEnterSends) {
                 update(settings.copy(doubleEnterSends = it))
+            },
+            ToggleRow(this, "Web address shortcut", "In a browser address bar, add a .com key next to the space bar",
+                settings.urlKeys) {
+                update(settings.copy(urlKeys = it))
             }
         ))
     )
