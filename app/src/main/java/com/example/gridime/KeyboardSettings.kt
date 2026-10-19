@@ -59,7 +59,7 @@ enum class KeyShape(val label: String, val radiusDp: Float) {
  * The physical buttons, named by Android's keycodes.
  * A = bottom face button, B = right, X = left, Y = top (Xbox positions).
  */
-enum class ControllerButton { A, B, X, Y, L1, R1, L2, R2, SELECT, START, L3 }
+enum class ControllerButton { A, B, X, Y, L1, R1, L2, R2, SELECT, START, L3, R3 }
 
 /** A key colour set: keyboard background, letter keys, special keys. */
 data class Tone(val name: String, val background: Int, val key: Int, val special: Int)
@@ -120,6 +120,7 @@ data class KeyboardSettings(
     val selectAllButton: Boolean = false,
     val doubleSpacePeriod: Boolean = true,
     val undoCombo: Boolean = true,
+    val doubleEnterSends: Boolean = true,   // press RT twice quickly to send
     // Sound & haptics
     val vibration: Boolean = true,
     val moveStrength: Int = 5,          // 0 to 10
@@ -157,6 +158,7 @@ data class KeyboardSettings(
             .putBoolean(K_SELECT_ALL_BUTTON, selectAllButton)
             .putBoolean(K_DOUBLE_SPACE, doubleSpacePeriod)
             .putBoolean(K_UNDO, undoCombo)
+            .putBoolean(K_DOUBLE_ENTER, doubleEnterSends)
             .putBoolean(K_VIBRATION, vibration)
             .putInt(K_MOVE, moveStrength)
             .putInt(K_PRESS, pressStrength)
@@ -191,6 +193,7 @@ data class KeyboardSettings(
         private const val K_SELECT_ALL_BUTTON = "select_all_button"
         private const val K_DOUBLE_SPACE = "double_space_period"
         private const val K_UNDO = "undo_combo"
+        private const val K_DOUBLE_ENTER = "double_enter_sends"
         private const val K_VIBRATION = "vibration"
         private const val K_MOVE = "move_strength_v7"     // v7: vibration scale changed
         private const val K_PRESS = "press_strength_v7"
@@ -221,6 +224,7 @@ data class KeyboardSettings(
                 selectAllButton = p.getBoolean(K_SELECT_ALL_BUTTON, d.selectAllButton),
                 doubleSpacePeriod = p.getBoolean(K_DOUBLE_SPACE, d.doubleSpacePeriod),
                 undoCombo = p.getBoolean(K_UNDO, d.undoCombo),
+                doubleEnterSends = p.getBoolean(K_DOUBLE_ENTER, d.doubleEnterSends),
                 vibration = p.getBoolean(K_VIBRATION, d.vibration),
                 moveStrength = p.getInt(K_MOVE, d.moveStrength),
                 pressStrength = p.getInt(K_PRESS, d.pressStrength),

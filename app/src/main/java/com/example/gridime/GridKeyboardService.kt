@@ -35,7 +35,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var selStart = 0
     private var selEnd = 0
 
-    // Select mode: L2 / R1 grow or shrink the selection
+    // Select mode: R3 / R1 grow or shrink the selection
     private var selecting = false
     private var anchor = 0
     private var movingEnd = 0
@@ -53,13 +53,15 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var hatDx = 0
     private var hatDy = 0
 
-    // L1 (left bumper) tap = shift, L1 hold = modifier. L2 = cursor left, R1 = cursor right.
-    // R2 = confirm / send. Start = letters/symbols.
+    // L1 (left bumper) tap = shift, L1 hold = modifier. L2 = letters/symbols.
+    // R3 (right stick click) = cursor left, R1 = cursor right.
+    // R2 once = confirm (Enter / action), R2 twice quickly = send.
     private var leftTriggerDown = false
-    private var cursorLeftHeld = false
     private var rightTriggerDown = false
     private var lastLayerTime = 0L
     private var lastConfirmTime = 0L
+    private var lastConfirmPress = 0L          // last real confirm, for the double press
+    private var lastConfirmWasNewline = false
     private var shiftHeld = false
     private var shiftUsedAsModifier = false
     private var shiftLastRelease = 0L
@@ -162,7 +164,6 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         hatDx = 0
         hatDy = 0
         shiftHeld = false
-        cursorLeftHeld = false
         rightTriggerDown = false
         leftTriggerDown = false
         gridView?.setHeldShift(false)
@@ -196,15 +197,22 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     }
 
     override fun onEnter() {
+        enter()
+    }
+
+    /** Presses Enter. Returns true when it typed a new line, false when it ran the field's action. */
+    private fun enter(): Boolean {
         val options = currentInputEditorInfo?.imeOptions ?: 0
         val action = options and EditorInfo.IME_MASK_ACTION
         val actionAllowed = (options and EditorInfo.IME_FLAG_NO_ENTER_ACTION) == 0
         if (actionAllowed && action != EditorInfo.IME_ACTION_NONE && action != EditorInfo.IME_ACTION_UNSPECIFIED) {
             currentInputConnection?.performEditorAction(action)      // Search / Go / Send
-        } else {
-            sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)              // new line
+            refreshAutoShift()
+            return false
         }
+        sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)                  // new line
         refreshAutoShift()
+        return true
     }
 
     override fun onTool(tool: Tool) {
@@ -365,7 +373,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** L1 + L2 / R1: jump (or select) a whole word. */
+    /** L1 + R3 / R1: jump (or select) a whole word. */
     private fun jumpWord(dir: Int) {
         val ic = currentInputConnection ?: return
         val (text, offset) = TextOps.textAround(ic, selStart, selEnd)
@@ -460,11 +468,11 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             }
             KeyEvent.KEYCODE_BUTTON_L1 -> if (first) shiftDown()
             KeyEvent.KEYCODE_BUTTON_R1 -> if (first) startCursor(1)
-            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) cursorLeftDown()
+            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) onLayerButton()
+            KeyEvent.KEYCODE_BUTTON_THUMBR -> if (first) startCursor(-1)
             KeyEvent.KEYCODE_BUTTON_R2 -> if (first) onConfirm()
             KeyEvent.KEYCODE_BUTTON_SELECT -> if (first) onSelectButton()
             KeyEvent.KEYCODE_BUTTON_THUMBL -> if (first) cycleSize()
-            KeyEvent.KEYCODE_BUTTON_START -> if (first) onLayerButton()
 
             // B closes select mode or the clipboard first; otherwise it's Android's Back
             KeyEvent.KEYCODE_BUTTON_B -> {
@@ -493,7 +501,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_BUTTON_X -> deleteRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_L1 -> shiftUp()
-            KeyEvent.KEYCODE_BUTTON_L2 -> cursorLeftUp()
+            KeyEvent.KEYCODE_BUTTON_THUMBR -> cursorRepeater.stop()
             KeyEvent.KEYCODE_BUTTON_B -> {
                 val consumed = bConsumed
                 bConsumed = false
@@ -519,7 +527,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** Start: switch between letters and symbols. */
+    /** L2: switch between letters and symbols. */
     private fun onLayerButton() {
         val now = SystemClock.uptimeMillis()
         if (now - lastLayerTime < TRIGGER_DEDUPE_MS) return
@@ -527,26 +535,39 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         gridView?.toggleLayer()
     }
 
-    /** R2: confirm / send (Enter, Search, Go). */
+    /**
+     * R2 once = confirm (Enter, or the field's Search / Go / Send action).
+     * R2 twice quickly = send: the newline from the first press is taken back, then the
+     * field's Send action runs. In a browser tab that behaves like pressing Enter, so a chat
+     * box that sends on Enter (like Discord on the web) sends.
+     */
     private fun onConfirm() {
         val now = SystemClock.uptimeMillis()
-        if (now - lastConfirmTime < TRIGGER_DEDUPE_MS) return
+        if (now - lastConfirmTime < TRIGGER_DEDUPE_MS) return      // key + axis for one pull
         lastConfirmTime = now
+        val quick = now - lastConfirmPress < DOUBLE_PRESS_MS
+        if (settings.doubleEnterSends && quick) {
+            lastConfirmPress = 0L
+            if (lastConfirmWasNewline) {
+                feedback.confirm()
+                sendMessage()
+            }
+            return                                                  // an action already ran
+        }
+        lastConfirmPress = now
         feedback.confirm()
-        onEnter()
+        lastConfirmWasNewline = enter()
     }
 
-    /** L2: hold to move the cursor left (the trigger can arrive as a key or as an axis, so guard it). */
-    private fun cursorLeftDown() {
-        if (cursorLeftHeld) return
-        cursorLeftHeld = true
-        startCursor(-1)
-    }
-
-    private fun cursorLeftUp() {
-        if (!cursorLeftHeld) return
-        cursorLeftHeld = false
-        cursorRepeater.stop()
+    /** Takes back the newline typed by the first press, then asks the field to send. */
+    private fun sendMessage() {
+        val ic = currentInputConnection ?: return
+        val before = ic.getTextBeforeCursor(1, 0)
+        if (before != null && before.toString() == "\n") {
+            ic.deleteSurroundingText(1, 0)
+        }
+        ic.performEditorAction(EditorInfo.IME_ACTION_SEND)
+        refreshAutoShift()
     }
 
     /** L1 down: show capitals, then wait to see whether it's a tap or a hold. */
@@ -595,10 +616,9 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         val rt = max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS))
         if (!leftTriggerDown && lt > TRIGGER_PRESS) {
             leftTriggerDown = true
-            cursorLeftDown()
+            onLayerButton()
         } else if (leftTriggerDown && lt < TRIGGER_RELEASE) {
             leftTriggerDown = false
-            cursorLeftUp()
         }
         if (!rightTriggerDown && rt > TRIGGER_PRESS) {
             rightTriggerDown = true
@@ -666,7 +686,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         const val DELETE_WORDS_AFTER = 20
         const val DELETE_WORD_MS = 160L
 
-        // Hold L2 / R1
+        // Hold R3 / R1
         const val CURSOR_DELAY_MS = 400L
         const val CURSOR_START_MS = 110L
         const val CURSOR_FASTEST_MS = 45L
@@ -678,8 +698,8 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
 
         val HANDLED_KEYS = setOf(
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_Y,
-            KeyEvent.KEYCODE_BUTTON_R2, KeyEvent.KEYCODE_BUTTON_SELECT,
-            KeyEvent.KEYCODE_BUTTON_THUMBL, KeyEvent.KEYCODE_BUTTON_START
+            KeyEvent.KEYCODE_BUTTON_L2, KeyEvent.KEYCODE_BUTTON_R2,
+            KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_BUTTON_THUMBL
         )
     }
 }

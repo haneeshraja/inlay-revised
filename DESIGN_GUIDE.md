@@ -163,10 +163,10 @@ Four **sound packs** share the same ten cues and the same meanings, so switching
 | X | delete (hold to speed up) | — |
 | Y | space | show or hide the keyboard preview |
 | LB | tap: shift. Hold: combos | previous section |
-| LT / RB | move cursor (LB + them: jump word) | RB: next section |
-| RT | confirm / send | — |
+| LT | letters and symbols | — |
+| RS (press) / RB | move cursor (LB + them: jump word) | RB: next section |
+| RT | tap: confirm. Twice: send | — |
 | View / Select | select mode · ×2 select all | — |
-| Menu / Start | letters and symbols | — |
 | LS (press) | keyboard size | — |
 
 ## App icon

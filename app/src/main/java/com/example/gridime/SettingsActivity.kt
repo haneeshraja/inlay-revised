@@ -413,6 +413,10 @@ class SettingsActivity : Activity() {
             ToggleRow(this, "Undo shortcut", "Hold {L1} and press {X}",
                 settings.undoCombo) {
                 update(settings.copy(undoCombo = it))
+            },
+            ToggleRow(this, "Double press to send", "Press {R2} once to confirm, twice quickly to send the message",
+                settings.doubleEnterSends) {
+                update(settings.copy(doubleEnterSends = it))
             }
         ))
     )
@@ -484,8 +488,8 @@ class SettingsActivity : Activity() {
 
     private fun guidePage(): List<Section> {
         val editing = mutableListOf(
-            GuideRow(this, "Move the text cursor", "{L2} {R1}"),
-            GuideRow(this, "Jump a whole word", "{L1} + {L2} {R1}"),
+            GuideRow(this, "Move the text cursor", "{R3} {R1}"),
+            GuideRow(this, "Jump a whole word", "{L1} + {R3} {R1}"),
             GuideRow(this, "Select text", "{SELECT}"),
             GuideRow(this, "Select everything", "{SELECTx2}")
         )
@@ -497,8 +501,9 @@ class SettingsActivity : Activity() {
                 GuideRow(this, "Space", "{Y}"),
                 GuideRow(this, "Shift · tap twice for caps lock", "{L1}"),
                 GuideRow(this, "One capital letter", "{L1} + {A}"),
-                GuideRow(this, "Letters and symbols", "{START}"),
-                GuideRow(this, "Enter · Search · Go", "{R2}")
+                GuideRow(this, "Letters and symbols", "{L2}"),
+                GuideRow(this, "Enter · Search · Go", "{R2}"),
+                GuideRow(this, "Send the message", "{R2x2}")
             )),
             Section("Editing", editing),
             Section("Keyboard", listOf(
