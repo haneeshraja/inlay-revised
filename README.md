@@ -1,14 +1,16 @@
 <p align="center"><img src="docs/images/icon.png" width="128" alt="Inlay icon"></p>
 
-# Inlay
+# Inlay-Revised
 
 **A gamepad keyboard for Android handhelds.** You drive it with the controller, not your thumbs on the glass.
+
+Revised version of Inlay by **[Emre aka dakingeman](https://github.com/dakingeman/inlay)** with better controller layout and adding quality of life features, minimizes touch input even more. Huge thanks it his original code. The code was exclusively updated by Claude. not by a Human
+
+Below Read me is from original source:
 
 Move with the D-pad or stick, press A to type, and never reach for the touchscreen again. Made for handhelds like the AYN Odin and Retroid Pocket, and for any Android device with a gamepad connected.
 
 Free, open source, no ads, no tracking, no internet permission.
-
-[![Latest release](https://img.shields.io/github/v/release/dakingeman/inlay?color=72D6E8&labelColor=0B0B0E)](../../releases/latest) [![Licence](https://img.shields.io/github/license/dakingeman/inlay?color=72D6E8&labelColor=0B0B0E)](LICENSE) ![Android 10+](https://img.shields.io/badge/Android-10%2B-72D6E8?labelColor=0B0B0E)
 
 **[Download the latest version](../../releases/latest)** · [How to install](#install) · [Report a problem](../../issues/new/choose)
 
