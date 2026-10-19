@@ -4,7 +4,7 @@
 
 **A gamepad keyboard for Android handhelds.** You drive it with the controller, not your thumbs on the glass.
 
-Revised version of Inlay by **[Emre aka dakingeman](https://github.com/dakingeman/inlay)** with better controller layout and adding quality of life features, minimizes touch input even more. Huge thanks it his original code. The code was exclusively updated by Claude. not by a Human
+Revised version of Inlay by **[Emre aka dakingeman](https://github.com/dakingeman/inlay)** with better controller layout and adding quality of life features, minimizes touch input even more. Huge thanks it his original code. The code was exclusively updated by Claude, not by a Human
 
 Below Read me is from original source:
 
