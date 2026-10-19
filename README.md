@@ -48,7 +48,7 @@ All of these are real screenshots from my Odin 2 Portal.
   - A types, X deletes (hold it and it speeds up, then deletes whole words), Y is space.
   - RS (right stick click) / RB move the cursor. Hold LB with them to jump whole words.
   - LB taps shift; tap twice for caps lock. LT switches to symbols. RT once confirms (Enter); RT twice quickly sends the message (can be turned off in Settings).
-  - In a browser address bar the space bar gets shorter and a .com key appears next to it (can be turned off in Settings).
+  - Start types .com. There is a .com key to the right of the space bar too.
   - Select starts selecting text; press it twice to select everything.
 - **Clipboard history.** Your last few copies, one button away. Passwords marked as sensitive are never kept.
 - **Types straight into the app.** No full-screen typing box covering your game or launcher.

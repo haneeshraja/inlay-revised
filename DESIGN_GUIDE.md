@@ -167,6 +167,7 @@ Four **sound packs** share the same ten cues and the same meanings, so switching
 | RS (press) / RB | move cursor (LB + them: jump word) | RB: next section |
 | RT | tap: confirm. Twice: send | — |
 | View / Select | select mode · ×2 select all | — |
+| Menu / Start | types .com | — |
 | LS (press) | keyboard size | — |
 
 ## App icon

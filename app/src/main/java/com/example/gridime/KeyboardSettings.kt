@@ -121,7 +121,6 @@ data class KeyboardSettings(
     val doubleSpacePeriod: Boolean = true,
     val undoCombo: Boolean = true,
     val doubleEnterSends: Boolean = true,   // press RT twice quickly to send
-    val urlKeys: Boolean = true,            // address bars: shorter space bar plus a ".com" key
     // Sound & haptics
     val vibration: Boolean = true,
     val moveStrength: Int = 5,          // 0 to 10
@@ -160,7 +159,6 @@ data class KeyboardSettings(
             .putBoolean(K_DOUBLE_SPACE, doubleSpacePeriod)
             .putBoolean(K_UNDO, undoCombo)
             .putBoolean(K_DOUBLE_ENTER, doubleEnterSends)
-            .putBoolean(K_URL_KEYS, urlKeys)
             .putBoolean(K_VIBRATION, vibration)
             .putInt(K_MOVE, moveStrength)
             .putInt(K_PRESS, pressStrength)
@@ -196,7 +194,6 @@ data class KeyboardSettings(
         private const val K_DOUBLE_SPACE = "double_space_period"
         private const val K_UNDO = "undo_combo"
         private const val K_DOUBLE_ENTER = "double_enter_sends"
-        private const val K_URL_KEYS = "url_keys"
         private const val K_VIBRATION = "vibration"
         private const val K_MOVE = "move_strength_v7"     // v7: vibration scale changed
         private const val K_PRESS = "press_strength_v7"
@@ -228,7 +225,6 @@ data class KeyboardSettings(
                 doubleSpacePeriod = p.getBoolean(K_DOUBLE_SPACE, d.doubleSpacePeriod),
                 undoCombo = p.getBoolean(K_UNDO, d.undoCombo),
                 doubleEnterSends = p.getBoolean(K_DOUBLE_ENTER, d.doubleEnterSends),
-                urlKeys = p.getBoolean(K_URL_KEYS, d.urlKeys),
                 vibration = p.getBoolean(K_VIBRATION, d.vibration),
                 moveStrength = p.getInt(K_MOVE, d.moveStrength),
                 pressStrength = p.getInt(K_PRESS, d.pressStrength),
