@@ -10,7 +10,7 @@ When adding anything new, check it against these rules first.
 
 1. **Controller first.** Everything works with D-pad, A and B. Touch is a bonus.
 2. **One way to show a thing.** One focus style, one hint style, one icon family.
-3. **Say it when it's useful.** Hints appear when they apply (holding LT, select mode) and disappear after.
+3. **Say it when it's useful.** Hints appear when they apply (holding LB, select mode) and disappear after.
 4. **Calm by default.** Pure black, one accent colour, no decoration that doesn't carry meaning.
 5. **Senses agree.** Sound, vibration and animation fire together and tell the same story.
 
@@ -61,7 +61,7 @@ When adding anything new, check it against these rules first.
 - The only hint shape is the **chip**: a soft pill holding badges and a short word, e.g. `[LB][RB] Jump word`.
 - Chips list the most useful action first. If space runs out, the last ones drop.
 - Where chips appear:
-  - Hold LT: they fade in over the tool strip.
+  - Hold LB: they fade in over the tool strip.
   - Select mode: they appear on the space bar.
   - Clipboard: they sit under the cards.
 
@@ -162,8 +162,8 @@ Four **sound packs** share the same ten cues and the same meanings, so switching
 | B | close (or leave a mode) | close |
 | X | delete (hold to speed up) | — |
 | Y | space | show or hide the keyboard preview |
-| LB / RB | move cursor | switch sections |
-| LT | tap: shift. Hold: combos | — |
+| LB | tap: shift. Hold: combos | previous section |
+| LT / RB | move cursor (LB + them: jump word) | RB: next section |
 | RT | confirm / send | — |
 | View / Select | select mode · ×2 select all | — |
 | Menu / Start | letters and symbols | — |

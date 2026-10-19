@@ -35,7 +35,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var selStart = 0
     private var selEnd = 0
 
-    // Select mode: L1 / R1 grow or shrink the selection
+    // Select mode: L2 / R1 grow or shrink the selection
     private var selecting = false
     private var anchor = 0
     private var movingEnd = 0
@@ -53,8 +53,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var hatDx = 0
     private var hatDy = 0
 
-    // Triggers. L2 tap = shift, L2 hold = modifier. R2 = confirm / send. Start = letters/symbols.
+    // L1 (left bumper) tap = shift, L1 hold = modifier. L2 = cursor left, R1 = cursor right.
+    // R2 = confirm / send. Start = letters/symbols.
     private var leftTriggerDown = false
+    private var cursorLeftHeld = false
     private var rightTriggerDown = false
     private var lastLayerTime = 0L
     private var lastConfirmTime = 0L
@@ -160,6 +162,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         hatDx = 0
         hatDy = 0
         shiftHeld = false
+        cursorLeftHeld = false
         rightTriggerDown = false
         leftTriggerDown = false
         gridView?.setHeldShift(false)
@@ -362,7 +365,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
     }
 
-    /** L2 + L1 / R1: jump (or select) a whole word. */
+    /** L1 + L2 / R1: jump (or select) a whole word. */
     private fun jumpWord(dir: Int) {
         val ic = currentInputConnection ?: return
         val (text, offset) = TextOps.textAround(ic, selStart, selEnd)
@@ -455,9 +458,9 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
                 feedback.space()
                 onText(" ")
             }
-            KeyEvent.KEYCODE_BUTTON_L1 -> if (first) startCursor(-1)
+            KeyEvent.KEYCODE_BUTTON_L1 -> if (first) shiftDown()
             KeyEvent.KEYCODE_BUTTON_R1 -> if (first) startCursor(1)
-            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) shiftDown()
+            KeyEvent.KEYCODE_BUTTON_L2 -> if (first) cursorLeftDown()
             KeyEvent.KEYCODE_BUTTON_R2 -> if (first) onConfirm()
             KeyEvent.KEYCODE_BUTTON_SELECT -> if (first) onSelectButton()
             KeyEvent.KEYCODE_BUTTON_THUMBL -> if (first) cycleSize()
@@ -488,8 +491,9 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN,
             KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> stopNav()
             KeyEvent.KEYCODE_BUTTON_X -> deleteRepeater.stop()
-            KeyEvent.KEYCODE_BUTTON_L1, KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
-            KeyEvent.KEYCODE_BUTTON_L2 -> shiftUp()
+            KeyEvent.KEYCODE_BUTTON_R1 -> cursorRepeater.stop()
+            KeyEvent.KEYCODE_BUTTON_L1 -> shiftUp()
+            KeyEvent.KEYCODE_BUTTON_L2 -> cursorLeftUp()
             KeyEvent.KEYCODE_BUTTON_B -> {
                 val consumed = bConsumed
                 bConsumed = false
@@ -532,7 +536,20 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         onEnter()
     }
 
-    /** L2 down: show capitals, then wait to see whether it's a tap or a hold. */
+    /** L2: hold to move the cursor left (the trigger can arrive as a key or as an axis, so guard it). */
+    private fun cursorLeftDown() {
+        if (cursorLeftHeld) return
+        cursorLeftHeld = true
+        startCursor(-1)
+    }
+
+    private fun cursorLeftUp() {
+        if (!cursorLeftHeld) return
+        cursorLeftHeld = false
+        cursorRepeater.stop()
+    }
+
+    /** L1 down: show capitals, then wait to see whether it's a tap or a hold. */
     private fun shiftDown() {
         if (shiftHeld) return
         if (SystemClock.uptimeMillis() - shiftLastRelease < TRIGGER_DEDUPE_MS) return
@@ -541,7 +558,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         gridView?.setHeldShift(true)
     }
 
-    /** L2 up: if nothing else was pressed with it, it was a shift tap. */
+    /** L1 up: if nothing else was pressed with it, it was a shift tap. */
     private fun shiftUp() {
         if (!shiftHeld) return
         shiftHeld = false
@@ -578,10 +595,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         val rt = max(event.getAxisValue(MotionEvent.AXIS_RTRIGGER), event.getAxisValue(MotionEvent.AXIS_GAS))
         if (!leftTriggerDown && lt > TRIGGER_PRESS) {
             leftTriggerDown = true
-            shiftDown()
+            cursorLeftDown()
         } else if (leftTriggerDown && lt < TRIGGER_RELEASE) {
             leftTriggerDown = false
-            shiftUp()
+            cursorLeftUp()
         }
         if (!rightTriggerDown && rt > TRIGGER_PRESS) {
             rightTriggerDown = true
@@ -649,7 +666,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         const val DELETE_WORDS_AFTER = 20
         const val DELETE_WORD_MS = 160L
 
-        // Hold L1 / R1
+        // Hold L2 / R1
         const val CURSOR_DELAY_MS = 400L
         const val CURSOR_START_MS = 110L
         const val CURSOR_FASTEST_MS = 45L
