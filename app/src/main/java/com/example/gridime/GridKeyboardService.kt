@@ -7,6 +7,7 @@ import android.inputmethodservice.InputMethodService
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.text.InputType
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -14,6 +15,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -27,6 +29,8 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
     private var settings = KeyboardSettings()
     private lateinit var feedback: Feedback
     private lateinit var history: ClipboardHistory
+    private lateinit var suggester: WordSuggester
+    private var suggestionsAllowed = true      // off in password, number, email and web address fields
 
     private var clipboard: ClipboardManager? = null
     private val clipListener = ClipboardManager.OnPrimaryClipChangedListener { onClipboardChanged() }
@@ -76,6 +80,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         settings = KeyboardSettings.load(this)
         feedback = Feedback(this).apply { update(settings) }
         history = ClipboardHistory(this).apply { reload() }
+        suggester = WordSuggester(this) { updateSuggestions() }
         clipboard = getSystemService(ClipboardManager::class.java)
         clipboard?.addPrimaryClipChangedListener(clipListener)
     }
@@ -139,6 +144,8 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
         selStart = info?.initialSelStart?.coerceAtLeast(0) ?: 0
         selEnd = info?.initialSelEnd?.coerceAtLeast(0) ?: 0
+        suggestionsAllowed = allowsSuggestions(info)
+        gridView?.setTextSelected(selStart != selEnd)
         exitSelectMode(collapse = false)
         refreshAutoShift()
         updateClipPreview()
@@ -177,6 +184,61 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         selStart = newSelStart
         selEnd = newSelEnd
         if (selecting) gridView?.setSelecting(true, abs(selEnd - selStart)) else refreshAutoShift()
+        gridView?.setTextSelected(selStart != selEnd)
+        updateSuggestions()
+    }
+
+    // =====================================================================
+    // WORD SUGGESTIONS
+    // =====================================================================
+    /** Suggestions only make sense in ordinary text boxes, never for passwords, addresses or numbers. */
+    private fun allowsSuggestions(info: EditorInfo?): Boolean {
+        val type = info?.inputType ?: return false
+        if ((type and InputType.TYPE_MASK_CLASS) != InputType.TYPE_CLASS_TEXT) return false
+        if ((type and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) != 0) return false
+        return when (type and InputType.TYPE_MASK_VARIATION) {
+            InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS,
+            InputType.TYPE_TEXT_VARIATION_URI -> false
+            else -> true
+        }
+    }
+
+    /** The letters just before the cursor that form the word being typed (may be empty). */
+    private fun currentWord(ic: InputConnection): String {
+        val before = ic.getTextBeforeCursor(MAX_WORD_LENGTH, 0) ?: return ""
+        val word = before.takeLastWhile { it.isLetter() || it == '\'' || it == '’' }.toString().trimStart('\'', '’')
+        return if (word.length >= MAX_WORD_LENGTH) "" else word          // a run that long is not a word
+    }
+
+    /** Works out which words to offer for the word at the cursor and hands them to the keyboard. */
+    private fun updateSuggestions() {
+        val grid = gridView ?: return
+        val ic = currentInputConnection
+        if (ic == null || !settings.wordSuggestions || !suggestionsAllowed || selecting || selStart != selEnd) {
+            grid.setSuggestions(emptyList())
+            return
+        }
+        val word = currentWord(ic)
+        // With the cursor in the middle of a word, a suggestion would split it in two
+        val next = ic.getTextAfterCursor(1, 0)
+        val insideWord = next != null && next.isNotEmpty() && next[0].isLetter()
+        grid.setSuggestions(if (word.isEmpty() || insideWord) emptyList() else suggester.suggest(word, MAX_SUGGESTIONS))
+    }
+
+    /** Swaps the word being typed for the chosen one, and adds a space so you can carry on. */
+    override fun onSuggestion(word: String) {
+        val ic = currentInputConnection ?: return
+        val typed = currentWord(ic)
+        ic.beginBatchEdit()
+        if (typed.isNotEmpty()) ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText("$word ", 1)
+        ic.endBatchEdit()
+        if (selecting) exitSelectMode(collapse = false)
+        refreshAutoShift()
     }
 
     // =====================================================================
@@ -340,6 +402,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         anchor = selStart
         movingEnd = selEnd
         gridView?.setSelecting(true, abs(selEnd - selStart))
+        updateSuggestions()
     }
 
     private fun selectAll() {
@@ -350,6 +413,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         anchor = 0
         movingEnd = TextOps.textLength(ic, selStart, selEnd)
         gridView?.setSelecting(true, movingEnd)
+        updateSuggestions()
     }
 
     /** Leaves select mode. [collapse] also clears the highlight, leaving the cursor at its end. */
@@ -360,6 +424,7 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         }
         selecting = false
         gridView?.setSelecting(false, 0)
+        updateSuggestions()
     }
 
     private fun moveCursor(dir: Int) {
@@ -680,6 +745,10 @@ class GridKeyboardService : InputMethodService(), KeyGridView.Listener {
         const val TRIGGER_RELEASE = 0.3f
         const val TRIGGER_DEDUPE_MS = 80L
         const val DOUBLE_PRESS_MS = 350L
+
+        // Word suggestions
+        const val MAX_SUGGESTIONS = 3
+        const val MAX_WORD_LENGTH = 24
 
         val HANDLED_KEYS = setOf(
             KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_BUTTON_Y,

@@ -417,6 +417,11 @@ class SettingsActivity : Activity() {
             ToggleRow(this, "Double press to send", "Press {R2} once to confirm, twice quickly to send the message",
                 settings.doubleEnterSends) {
                 update(settings.copy(doubleEnterSends = it))
+            },
+            ToggleRow(this, "Word suggestions",
+                "Suggests words as you type, next to Select. Move up from the top row of keys, then press {A}. Never used in password fields.",
+                settings.wordSuggestions) {
+                update(settings.copy(wordSuggestions = it))
             }
         ))
     )

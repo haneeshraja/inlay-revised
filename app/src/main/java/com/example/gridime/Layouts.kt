@@ -1,6 +1,6 @@
 package com.example.gridime
 
-enum class KeyType { CHAR, SHIFT, LAYER, SPACE, ENTER, DELETE, TOOL, CLIP, EMPTY }
+enum class KeyType { CHAR, SHIFT, LAYER, SPACE, ENTER, DELETE, TOOL, CLIP, EMPTY, SUGGESTION }
 enum class ShiftState { OFF, ONCE, LOCK }
 enum class Tool { SELECT, SELECT_ALL, CUT, COPY, PASTE, HISTORY, SETTINGS }
 enum class Layer { LETTERS, SYMBOLS, CLIPS }
@@ -9,7 +9,7 @@ enum class Layer { LETTERS, SYMBOLS, CLIPS }
  * One key on the grid.
  * weight = width in units (a full row is 10 units)
  * hint   = the controller badge shown in the key's corner
- * index  = which clipboard item a clip card holds
+ * index  = which clipboard item a clip card holds, or which suggestion a suggestion key is
  */
 data class Key(
     val type: KeyType,
@@ -17,7 +17,8 @@ data class Key(
     val weight: Float = 1f,
     val tool: Tool? = null,
     val hint: ControllerButton? = null,
-    val index: Int = -1
+    val index: Int = -1,
+    val focusable: Boolean = true       // false for a spacer the highlight should skip
 )
 
 /**
@@ -34,28 +35,43 @@ object Layouts {
 
     private fun chars(s: String) = s.map { Key(KeyType.CHAR, it.toString()) }
 
-    fun toolRow(selectAllButton: Boolean): List<Key> {
-        val select = Key(KeyType.TOOL, "Select", if (selectAllButton) 1.7f else 1.9f, Tool.SELECT, ControllerButton.SELECT)
-        val tail = listOf(
-            Key(KeyType.TOOL, "", 0.9f, Tool.HISTORY),
-            Key(KeyType.TOOL, "", 0.9f, Tool.SETTINGS)
-        )
-        return if (selectAllButton) {
+    /**
+     * The strip above the keys.
+     *
+     * [selectionTools]: Cut and Copy only show while text is selected, they have nothing to
+     * work on otherwise. When they are hidden, their space (and the space Select and Paste
+     * no longer need) goes to [suggestions], the word suggestions for what is being typed.
+     * The strip is always exactly [UNITS] wide, so the keys never jump around.
+     */
+    fun toolRow(
+        selectAllButton: Boolean,
+        selectionTools: Boolean = false,
+        suggestions: List<String> = emptyList()
+    ): List<Key> {
+        val select = Key(KeyType.TOOL, "Select", if (selectAllButton) 0.85f else 0.95f, Tool.SELECT, ControllerButton.SELECT)
+        val all = Key(KeyType.TOOL, "All", 1.3f, Tool.SELECT_ALL)
+        val paste = Key(KeyType.TOOL, "Paste", if (selectAllButton) 1.5f else 1.9f, Tool.PASTE)
+        val history = Key(KeyType.TOOL, "", 0.9f, Tool.HISTORY)
+        val settings = Key(KeyType.TOOL, "", 0.9f, Tool.SETTINGS)
+
+        // Keys that are always there, before and after the flexible middle
+        val head = if (selectAllButton) listOf(select, all) else listOf(select)
+        val tail = listOf(paste, history, settings)
+        val spare = UNITS - (head + tail).sumOf { it.weight.toDouble() }.toFloat()
+
+        val middle = if (selectionTools) {
+            // Cut and Copy share the spare room, and sit between Select and Paste
             listOf(
-                select,
-                Key(KeyType.TOOL, "All", 1.3f, Tool.SELECT_ALL),
-                Key(KeyType.TOOL, "Cut", 1.0f, Tool.CUT),
-                Key(KeyType.TOOL, "Copy", 1.2f, Tool.COPY),
-                Key(KeyType.TOOL, "Paste", 3.0f, Tool.PASTE)
-            ) + tail
+                Key(KeyType.TOOL, "Cut", spare / 2f, Tool.CUT),
+                Key(KeyType.TOOL, "Copy", spare / 2f, Tool.COPY)
+            )
+        } else if (suggestions.isEmpty()) {
+            listOf(Key(KeyType.EMPTY, "", spare, focusable = false))      // keeps the strip full width
         } else {
-            listOf(
-                select,
-                Key(KeyType.TOOL, "Cut", 1.2f, Tool.CUT),
-                Key(KeyType.TOOL, "Copy", 1.3f, Tool.COPY),
-                Key(KeyType.TOOL, "Paste", 3.8f, Tool.PASTE)
-            ) + tail
+            val each = spare / suggestions.size
+            suggestions.mapIndexed { i, word -> Key(KeyType.SUGGESTION, word, each, index = i) }
         }
+        return head + middle + tail
     }
 
     /** The space bar gives up [DOTCOM_UNITS] of its width to a ".com" key between "." and Enter. */

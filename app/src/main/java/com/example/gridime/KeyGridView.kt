@@ -28,6 +28,7 @@ class KeyGridView(context: Context) : View(context) {
         fun onEnter()
         fun onTool(tool: Tool)
         fun onClip(index: Int)
+        fun onSuggestion(word: String)
     }
 
     var listener: Listener? = null
@@ -83,7 +84,7 @@ class KeyGridView(context: Context) : View(context) {
         colAccentSoft = Contrast.withAlpha(s.accent, 0x40)
         colGlow = Contrast.withAlpha(s.accent, 0x59)
         badges.style = s.buttonStyle
-        toolRow = Layouts.toolRow(s.selectAllButton)
+        rebuildToolRow()
         letterRows = Layouts.letterRows(s.layout)
         symbolRows = Layouts.symbolRows(s.layout)
         val level = s.sizeLevel.coerceIn(0, sizeScales.lastIndex)
@@ -146,6 +147,9 @@ class KeyGridView(context: Context) : View(context) {
     private var selCol = 4
     private var selecting = false
     private var selectedCount = 0
+    private var textSelected = false       // text is selected in the app: Cut and Copy have something to work on
+    private var suggestions: List<String> = emptyList()
+    private var returnTo: Pair<Int, Int>? = null    // where the highlight was before it moved up into the strip
     private var clipPreview: String? = null
     private var clips: List<String> = emptyList()
 
@@ -170,20 +174,74 @@ class KeyGridView(context: Context) : View(context) {
         return x + row[col].weight / 2f
     }
 
-    /** The key under [centre]; on an exact tie, the one to the left. */
+    /**
+     * The key under [centre]; on an exact tie, the one to the left.
+     * If that key is only a spacer, the nearest key the highlight can land on.
+     */
     private fun nearestCol(row: List<Key>, centre: Float): Int {
-        var x = (Layouts.UNITS - rowWidth(row)) / 2f
-        row.forEachIndexed { i, key ->
-            if (centre < x + key.weight - 0.001f) return i
-            x += key.weight
+        val start = (Layouts.UNITS - rowWidth(row)) / 2f
+        var x = start
+        var under = row.lastIndex
+        for (i in row.indices) {
+            if (centre < x + row[i].weight - 0.001f) {
+                under = i
+                break
+            }
+            x += row[i].weight
         }
-        return row.lastIndex
+        if (row[under].focusable) return under
+
+        var best = under
+        var bestDistance = Float.MAX_VALUE
+        x = start
+        for (i in row.indices) {
+            val distance = abs(x + row[i].weight / 2f - centre)
+            if (row[i].focusable && distance < bestDistance) {
+                best = i
+                bestDistance = distance
+            }
+            x += row[i].weight
+        }
+        return best
     }
 
     private fun clampFocus() {
         val rows = allRows()
         selRow = selRow.coerceIn(0, rows.lastIndex)
         selCol = selCol.coerceIn(0, rows[selRow].lastIndex)
+        val row = rows[selRow]
+        if (!row[selCol].focusable) selCol = nearestCol(row, centreOf(row, selCol))
+    }
+
+    /**
+     * Rebuilds the strip above the keys when what it should hold changes: Cut and Copy while
+     * text is selected, otherwise word suggestions. Keeps the highlight on the same key.
+     */
+    private fun rebuildToolRow() {
+        val next = Layouts.toolRow(settings.selectAllButton, textSelected || selectedCount > 0, suggestions)
+        if (next == toolRow) return
+        val old = if (selRow == 0) toolRow.getOrNull(selCol) else null
+        toolRow = next
+        if (old != null) {
+            val same = next.indexOfFirst { it.type == old.type && it.tool == old.tool && it.index == old.index }
+            if (same >= 0) selCol = same
+            focusAnim?.cancel()
+            focusReady = false              // the strip's keys changed size: put the highlight straight on its key
+        }
+        clampFocus()
+        invalidate()
+    }
+
+    fun setSuggestions(words: List<String>) {
+        if (words == suggestions) return
+        suggestions = words
+        rebuildToolRow()
+    }
+
+    fun setTextSelected(on: Boolean) {
+        if (on == textSelected) return
+        textSelected = on
+        rebuildToolRow()
     }
 
     private val capitals get() = layer == Layer.LETTERS && (shiftState != ShiftState.OFF || heldShift)
@@ -304,18 +362,31 @@ class KeyGridView(context: Context) : View(context) {
         val rows = allRows()
         var wrapped = false
         if (dx != 0) {
-            val size = rows[selRow].size
-            val next = selCol + dx
-            wrapped = next < 0 || next >= size
-            selCol = (next + size) % size
+            val row = rows[selRow]
+            val size = row.size
+            var next = selCol
+            var steps = 0
+            do {                                    // skip spacers
+                next += dx
+                if (next < 0 || next >= size) {
+                    wrapped = true
+                    next = (next + size) % size
+                }
+                steps++
+            } while (!row[next].focusable && steps < size)
+            selCol = next
             preferredCentre = null
         } else if (dy != 0) {
+            val fromRow = selRow
+            val fromCol = selCol
             val target = preferredCentre ?: centreOf(rows[selRow], selCol)
             preferredCentre = target
             val next = selRow + dy
             wrapped = next < 0 || next >= rows.size
             selRow = (next + rows.size) % rows.size
             selCol = nearestCol(rows[selRow], target)
+            // Remember where we came from, so picking a suggestion drops you back on the keys
+            returnTo = if (selRow == 0 && fromRow != 0) fromRow to fromCol else if (selRow == 0) returnTo else null
         }
         feedback?.move()
         animateFocus(wrapped)
@@ -418,6 +489,7 @@ class KeyGridView(context: Context) : View(context) {
     fun setSelecting(on: Boolean, count: Int) {
         selecting = on
         selectedCount = count
+        rebuildToolRow()
         invalidate()
     }
 
@@ -483,8 +555,23 @@ class KeyGridView(context: Context) : View(context) {
                 listener?.onClip(key.index)
                 closeClips(focusOnHistoryButton = false)
             }
+            KeyType.SUGGESTION -> {
+                feedback?.key()
+                listener?.onSuggestion(key.label)
+                returnFocusFromStrip()
+            }
             KeyType.EMPTY -> Unit
         }
+    }
+
+    /** After picking a suggestion, the highlight goes back to the key it was on before. */
+    private fun returnFocusFromStrip() {
+        val back = returnTo ?: return
+        returnTo = null
+        selRow = back.first
+        selCol = back.second
+        preferredCentre = null
+        animateFocus()
     }
 
     // =====================================================================
@@ -603,7 +690,7 @@ class KeyGridView(context: Context) : View(context) {
 
     private fun backgroundFor(key: Key): Int? = when (key.type) {
         KeyType.CHAR, KeyType.SPACE, KeyType.CLIP -> colKey
-        KeyType.EMPTY -> null
+        KeyType.EMPTY, KeyType.SUGGESTION -> null
         KeyType.TOOL -> when {
             key.tool == Tool.SELECT && selecting -> colAccentSoft
             key.tool == Tool.HISTORY && layer == Layer.CLIPS -> colAccentSoft
@@ -707,7 +794,8 @@ class KeyGridView(context: Context) : View(context) {
             KeyType.SHIFT -> drawShift(canvas, cx, cy, s, focused, bg, ink)
             KeyType.DELETE -> if (undoOnDelete) drawUndo(canvas, cx, cy, s, ink) else drawBackspace(canvas, cx, cy, s, ink)
             KeyType.ENTER -> drawEnter(canvas, cx, cy, s, ink)
-            KeyType.TOOL -> drawTool(canvas, key, cx, cy, s, focused, bg, ink, soft)
+            KeyType.TOOL -> drawTool(canvas, key, rect, cx, cy, s, focused, bg, ink, soft)
+            KeyType.SUGGESTION -> drawFitLabel(canvas, key.label, rect, ink, 13.5f, if (key.index == 0) 600 else 500)
             KeyType.CLIP -> drawClip(canvas, key, rect, ink)
             KeyType.EMPTY -> drawLabel(canvas, key.label, cx, cy, soft, 12.5f, 400)
         }
@@ -748,7 +836,7 @@ class KeyGridView(context: Context) : View(context) {
     // ---- Keys ---------------------------------------------------------------
 
     private fun drawTool(
-        canvas: Canvas, key: Key, cx: Float, cy: Float, s: Float,
+        canvas: Canvas, key: Key, rect: RectF, cx: Float, cy: Float, s: Float,
         focused: Boolean, bg: Int, ink: Int, soft: Int
     ) {
         val active = (key.tool == Tool.SELECT && selecting) || (key.tool == Tool.HISTORY && layer == Layer.CLIPS)
@@ -766,7 +854,7 @@ class KeyGridView(context: Context) : View(context) {
                     Tool.PASTE -> clipPreview?.let { "Paste  “$it”" } ?: "Paste"
                     else -> key.label
                 }
-                drawLabel(canvas, text, cx, cy, colour, 12.5f, 500)
+                drawFitLabel(canvas, text, rect, colour, 12.5f, 500)
             }
         }
     }
@@ -800,6 +888,24 @@ class KeyGridView(context: Context) : View(context) {
         canvas.drawText(text, cx, y, textPaint)
         textPaint.style = Paint.Style.FILL
         textPaint.strokeWidth = 0f
+    }
+
+    /** A label that always fits its key: shrinks a little first, then ends in "…" if it still doesn't. */
+    private fun drawFitLabel(canvas: Canvas, text: String, rect: RectF, colour: Int, sizeDp: Float, weight: Int) {
+        textPaint.color = colour
+        applyFont(textPaint, weight)
+        val room = max(0f, rect.width() - u(10f))
+        val full = u(sizeDp)
+        textPaint.textSize = full
+        val wanted = textPaint.measureText(text)
+        if (wanted > room) textPaint.textSize = max(full * 0.75f, full * room / wanted)
+        var shown = text
+        if (textPaint.measureText(shown) > room) {
+            val fits = textPaint.breakText(text, true, max(0f, room - textPaint.measureText("…")), null)
+            shown = text.take(fits).trimEnd() + "…"
+        }
+        val y = rect.centerY() - (textPaint.descent() + textPaint.ascent()) / 2f
+        canvas.drawText(shown, rect.centerX(), y, textPaint)
     }
 
     private fun drawLabel(canvas: Canvas, text: String, cx: Float, cy: Float, colour: Int, sizeDp: Float, weight: Int) {
@@ -927,6 +1033,7 @@ class KeyGridView(context: Context) : View(context) {
                     selRow = r
                     selCol = c
                     preferredCentre = null
+                    returnTo = null
                     animateFocus()
                     press(rows[r][c])
                     return true

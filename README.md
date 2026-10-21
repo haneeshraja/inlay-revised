@@ -51,6 +51,8 @@ All of these are real screenshots from my Odin 2 Portal.
   - LS (left stick click) moves the cursor left; RS (right stick click) / RB move it right. Hold LT with them to jump whole words. Keyboard size is changed in Settings only.
   - LT taps shift; tap twice for caps lock. LB switches to symbols. RT once confirms (Enter); RT twice quickly sends the message (can be turned off in Settings).
   - Start types .com. There is a .com key between . and Enter too.
+  - Cut and Copy only show up while text is selected.
+- **Word suggestions.** While you type, the most common words that continue the word you are on appear next to Select. Move up from the top row of keys and press A to take one. Never active in password, email, web address or number fields, and it can be turned off in Settings. Uses a small built-in word list (see `licenses/WORD_LIST.md`).
   - Select starts selecting text; press it twice to select everything.
 - **Clipboard history.** Your last few copies, one button away. Passwords marked as sensitive are never kept.
 - **Types straight into the app.** No full-screen typing box covering your game or launcher.
